@@ -1,18 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Huffman
 {
     internal class Huffman
     {
-        public void CompressFile(string dataFilename, string archFilename)//архивация 
+        public void CompressFile(string dataFilename, string archFilename)//сжатие файла  
         {
             byte[] data = File.ReadAllBytes(dataFilename);//счтитывание файла в массив
-            byte[] arch = CompressBytes(data);
+            byte[] arch = CompressBytes(data);//записывает результат в новый файл.
             File.WriteAllBytes(archFilename, arch);
         }
 
@@ -23,7 +20,7 @@ namespace Huffman
             File.WriteAllBytes(dataFilename, data);
         }
 
-        private byte[] DecompressBytes(byte[] arch)
+        private byte[] DecompressBytes(byte[] arch)////разархивирует массив байтов, анализируя заголовок, строит дерево Хаффмана и производит декомпрессию данных.
         {
             ParseHeader(arch, out int dataLenght, out int startIndex, out int[] freqs);
             Node root = CreateHuffmanTree(freqs);
@@ -31,7 +28,7 @@ namespace Huffman
             return data;
         }
 
-        private byte[] Decompress(byte[] arch, int startIndex, int dataLenght, Node root)
+        private byte[] Decompress(byte[] arch, int startIndex, int dataLenght, Node root)//производит декомпрессию данных
         {
             int size = 0;
             Node curr = root;
@@ -46,27 +43,27 @@ namespace Huffman
                         curr = curr.bit1;
                     if (curr.bit0 != null)
                         continue;
-                    if(size++ < dataLenght)
+                    if (size++ < dataLenght)
                         data.Add(curr.symbol);
                     curr = root;
                 }
-            
+
             return data.ToArray();
         }
 
-        private void ParseHeader(byte[] arch, out int dataLenght, out int startIndex, out int[] freqs)
+        private void ParseHeader(byte[] arch, out int dataLenght, out int startIndex, out int[] freqs)// извлекает информацию из заголовка массива байтов
         {
             dataLenght = arch[0] |
-                        (arch[1] <<  8) |
+                        (arch[1] << 8) |
                         (arch[1] << 16) |
-                        (arch[1] << 24) ;
+                        (arch[1] << 24);
             freqs = new int[256];
             for (int i = 0; i < 256; i++)
                 freqs[i] = arch[4 + i];
             startIndex = 4 + 256;
         }
 
-        private byte[] CompressBytes(byte[] data)
+        private byte[] CompressBytes(byte[] data)//сжимает массив байтов, вычисляя частоты символов
         {
             int[] freqs = CalculateFreq(data);
             byte[] head = CreateHeader(data.Length, freqs);
@@ -76,11 +73,11 @@ namespace Huffman
             return head.Concat(bits).ToArray();
         }
 
-        private byte[] CreateHeader(int dataLength, int[] freqs)
+        private byte[] CreateHeader(int dataLength, int[] freqs)//создает заголовок для сжатых данных, содержащий информацию о длине данных и частоты символов
         {
             List<byte> head = new List<byte>();
             head.Add((byte)(dataLength & 255));
-            head.Add((byte)((dataLength >>  8) & 255));
+            head.Add((byte)((dataLength >> 8) & 255));
             head.Add((byte)((dataLength >> 16) & 255));
             head.Add((byte)((dataLength >> 24) & 255));
             for (int i = 0; i < 256; i++)
@@ -90,32 +87,32 @@ namespace Huffman
             return head.ToArray();
         }
 
-        private byte[] Compress(byte[] data, string[] codes)
+        private byte[] Compress(byte[] data, string[] codes)//сжимает данные, используя коды Хаффмана для каждого символа и преобразуя их в массив байтов
         {
             List<byte> bits = new List<byte>();
             byte sum = 0;
             byte bit = 1;
             foreach (byte symbol in data)
-                    foreach (char c in codes[symbol])
-                    { 
-                        if (c == '1')
-                            sum |= bit;
-                        if (bit < 128)
-                            bit <<= 1;
-                        else
-                        {
-                            bits.Add(sum);
-                            sum = 0;
-                            bit = 1;
-                        }
+                foreach (char c in codes[symbol])
+                {
+                    if (c == '1')
+                        sum |= bit;
+                    if (bit < 128)
+                        bit <<= 1;
+                    else
+                    {
+                        bits.Add(sum);
+                        sum = 0;
+                        bit = 1;
                     }
+                }
             if (bit > 1)
                 bits.Add(sum);
             return bits.ToArray();
         }
 
 
-        private string[] CreateHuffmanCode(Node root)
+        private string[] CreateHuffmanCode(Node root)//создает коды Хаффмана для символов
         {
             string[] codes = new string[256];
             Next(root, "");
@@ -133,7 +130,7 @@ namespace Huffman
             }
         }
 
-        private int[] CalculateFreq(byte[] data)
+        private int[] CalculateFreq(byte[] data)//вычисляет частоты символов в массиве байтов и нормализует их
         {
             int[] freqs = new int[256];
             foreach (byte d in data)
@@ -145,13 +142,13 @@ namespace Huffman
             {
                 int max = freqs.Max();
                 if (max <= 255) return;
-                for(int i = 0; i < 256; i++)
+                for (int i = 0; i < 256; i++)
                     if (freqs[i] > 0)
                         freqs[i] = 1 + freqs[i] * 255 / (max + 1);
             }
         }
 
-        private Node CreateHuffmanTree(int[] freqs)
+        private Node CreateHuffmanTree(int[] freqs)//строит дерево Хаффмана на основе частот символов, используя приоритетную очередь
         {
             PriorityQueue<Node> pq = new PriorityQueue<Node>();
             for (int i = 0; i < 256; i++)
